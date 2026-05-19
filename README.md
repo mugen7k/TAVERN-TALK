@@ -1,33 +1,66 @@
-# 🍻 Tavern Talk
+# Tavern Talk
 
-**Seja bem vindo à taverna!**
+**Seja bem-vindo à taverna!**
 
-Tavern Talk é um programa de menu interativo com temática de RPG medieval. Explore um ambiente imersivo onde você pode interagir com diferentes NPCs, cada um apresentando características e diálogos únicos.
-
----
-
-**🕹️ Como Funciona**
-
-O programa utiliza um sistema de entrada numérica para navegação. Cada opção escolhida desencadeia uma interação diferente no cenário da taverna.
-
-Economia: O usuário inicia sua jornada com 77 moedas de ouro, que podem ser gastas ou utilizadas durante as interações com os NPCs.
-
-Encerrando: Para finalizar a execução, basta selecionar a opção de saída para deixar a taverna.
-
-Fique à vontade para explorar todos os cantos da taverna, mas cuidado para não derramar hidromel na roupa!
+Tavern Talk é um jogo de menu interativo com temática de RPG medieval. Você entra na taverna, escolhe sua origem, conversa com NPCs, compra itens, aposta nos dados e pode duelar com um bandido — tudo com economia de moedas e inventário.
 
 ---
 
-👥 Integrantes do Grupo:
+## Como jogar
 
-Felipe Peres
+| Modo | Comando |
+|------|---------|
+| **Gráfico** (Pygame) | `python teste.py` |
+| **Console** (texto) | `python teste.py --console` |
 
-Thiago Silva
+### Instalação
 
-Julia da Silva
+```bash
+pip install -r requirements.txt
+```
 
-Fabricio Mendoza
+Requisito: Python 3 com [Pygame](https://www.pygame.org/) (versão em `requirements.txt`).
 
+### Dicas rápidas (modo gráfico)
 
+1. Complete a introdução (porta, nome, origem nos cinco cartões).
+2. No **salão**, clique nos personagens na imagem.
+3. Use o **painel inferior** para escolhas e textos.
+4. Use o **botão Voltar** (canto superior direito) para retornar ao salão nos diálogos.
+5. Você começa com **77 moedas**. Para encerrar: **Sair da taverna** no salão.
 
-*Este projeto foi desenvolvido como requisito de avaliação acadêmica.*
+Imagens estão em [`assets/`](assets/). No modo gráfico, o primeiro arquivo de áudio encontrado nessa pasta (`.mp3`, `.ogg`, `.wav`, `.mpeg`, etc.) toca em loop como trilha de fundo.
+
+---
+
+## Estrutura do projeto
+
+| Arquivo / pasta | Função |
+|-----------------|--------|
+| [`teste.py`](teste.py) | Jogo completo (~1.340 linhas): lógica + interface gráfica + modo console |
+| [`assets/`](assets/) | Sprites (salão, NPCs, combate, janela, origens, dados em `DICES/`) |
+| [`requirements.txt`](requirements.txt) | Dependência: `pygame` |
+| [`EXPLICACAO_DO_CODIGO.md`](EXPLICACAO_DO_CODIGO.md) | Documentação: resumo do jogo + explicação técnica do código |
+
+O código foi organizado em **um arquivo** de propósito: facilita entrega e leitura em disciplina introdutória, com `GameController` (regras) e `TavernTalkGUI` (tela) bem separados por classe.
+
+---
+
+## Documentação do código
+
+Para entender **o que o jogo faz** e **como o Python está organizado** (fases, `view`, animações, combate, dados), leia:
+
+**[EXPLICACAO_DO_CODIGO.md](EXPLICACAO_DO_CODIGO.md)**
+
+Inclui resumo para o jogador/apresentação e seção técnica (máquina de estados, dicionário `view`, loop Pygame, pasta `assets`).
+
+---
+
+## Integrantes
+
+- Felipe Peres
+- Thiago Silva
+- Julia da Silva
+- Fabricio Mendoza
+
+*Projeto desenvolvido como requisito de avaliação acadêmica (FIAP).*
