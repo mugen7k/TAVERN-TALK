@@ -724,7 +724,7 @@ def escalar_caber(imagem, largura, altura):
 def carregar_sprites_dados():
     rolling_path = os.path.join(DICES_DIR, "DADOS ROLANDO.png")
     rolling = pygame.image.load(rolling_path).convert_alpha()
-    rolling = escalar_caber(rolling, int(LARGURA * 0.55), int(ALTURA * 0.55))
+    rolling = escalar_caber(rolling, int(LARGURA), int(ALTURA))
 
     cache = {}
     for a in range(1, 7):
@@ -733,7 +733,7 @@ def carregar_sprites_dados():
             caminho = os.path.join(DICES_DIR, nome)
             if os.path.isfile(caminho):
                 img = pygame.image.load(caminho).convert_alpha()
-                cache[(a, b)] = escalar_caber(img, int(LARGURA * 0.55), int(ALTURA * 0.55))
+                cache[(a, b)] = escalar_caber(img, int(LARGURA), int(ALTURA))
 
     return rolling, cache
 
@@ -774,10 +774,10 @@ class TavernTalkGUI:
         self.tela = pygame.display.set_mode((LARGURA, ALTURA))
         pygame.display.set_caption("Tavern Talk")
         self.relogio = pygame.time.Clock()
-        self.fonte = pygame.font.SysFont("segoeui", 22)
-        self.fonte_btn = pygame.font.SysFont("segoeui", 18)
-        self.fonte_hud = pygame.font.SysFont("segoeui", 26, bold=True)
-        self.fonte_titulo = pygame.font.SysFont("segoeui", 28, bold=True)
+        self.fonte = pygame.font.SysFont("Courier", 28)
+        self.fonte_btn = pygame.font.SysFont("Courier", 22)
+        self.fonte_hud = pygame.font.SysFont("Courier", 32, bold=True)
+        self.fonte_titulo = pygame.font.SysFont("Courier", 34, bold=True)
 
         telas_cheias = {
             "bebado_esbarra",
