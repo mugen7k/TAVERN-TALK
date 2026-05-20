@@ -37,8 +37,8 @@ ASSETS = os.path.join(BASE_DIR, "assets")
 DICES_DIR = os.path.join(ASSETS, "DICES")
 
 
-def monta_save_zuado():
-    return {"grana": 77, "mochila": [], "nome_mano": ""}
+def jogador_inicial():
+    return {"grana": 77, "mochila": [], "nome": ""}
 
 
 COISAS_DO_BAR = [
@@ -133,282 +133,282 @@ def texto_inventario(state):
     return "Itens:\n" + "\n".join(f"  - {i}" for i in inv)
 
 
-class GameController:
+class ControleJogo:
     def __init__(self):
-        self.state = monta_save_zuado()
-        self.phase = "intro_arrival"
-        self.log = []
-        self.combat = None
-        self.combat_turn_result = None
-        self.dice_result = None
+        self.jogador = jogador_inicial()
+        self.etapa = "intro_arrival"
+        self.mensagens = []
+        self.duelo = None
+        self.resultado_turno = None
+        self.resultado_dados = None
 
-    def get_view(self):
-        view = {
-            "lines": list(self.log),
-            "buttons": [],
-            "text_input": False,
-            "text_prompt": "",
-            "number_input": None,
-            "number_prompt": "",
-            "in_lobby": self.phase == "lobby",
-            "game_over": False,
+    def montar_interface(self):
+        tela = {
+            "textos": list(self.mensagens),
+            "botoes": [],
+            "pedir_texto": False,
+            "dica_texto": "",
+            "pedir_numero": None,
+            "dica_numero": "",
+            "no_salao": self.etapa == "lobby",
+            "acabou": False,
         }
-        fase = self.phase
+        fase = self.etapa
 
         if fase == "intro_arrival":
-            if not view["lines"]:
-                view["lines"] = [
+            if not tela["textos"]:
+                tela["textos"] = [
                     "Você avista a fumaça da taverna de longe.",
                     "Um hidromel esquentaria bem essa noite fria.",
                 ]
-            view["buttons"] = [("Continuar", "continuar")]
+            tela["botoes"] = [("Continuar", "continuar")]
 
         elif fase == "intro_door":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Entrar", "intro_door_enter"),
                 ("Ver pela janela", "intro_door_window"),
             ]
 
         elif fase == "intro_bebado":
-            if not view["lines"]:
-                view["lines"] = [
+            if not tela["textos"]:
+                tela["textos"] = [
                     "Você empurra a porta pesada. Uma onda de calor atinge seu corpo.",
                     "Um homem bêbado esbarra em você — ele nem pede desculpas.",
                 ]
-            view["buttons"] = [("Continuar", "continuar")]
+            tela["botoes"] = [("Continuar", "continuar")]
 
         elif fase == "intro_name":
-            if not view["lines"]:
-                view["lines"] = ['"Qual o seu nome?"', "Digite e pressione Enter:"]
-            view["text_input"] = True
-            view["text_prompt"] = "Me chamo..."
+            if not tela["textos"]:
+                tela["textos"] = ['"Qual o seu nome?"', "Digite e pressione Enter:"]
+            tela["pedir_texto"] = True
+            tela["dica_texto"] = "Me chamo..."
 
         elif fase == "intro_window":
-            view["buttons"] = [("Voltar à porta", "intro_window_back")]
+            tela["botoes"] = [("Voltar à porta", "intro_window_back")]
 
         elif fase == "intro_origin":
-            view["buttons"] = []
+            tela["botoes"] = []
 
         elif fase == "intro_welcome":
-            view["buttons"] = [("Entrar no salão", "intro_to_lobby")]
+            tela["botoes"] = [("Entrar no salão", "intro_to_lobby")]
 
         elif fase == "lobby":
-            if not view["lines"]:
-                view["lines"] = ["Clique nos personagens para interagir."]
-            view["buttons"] = [("Sair da taverna", "sair_taverna")]
+            if not tela["textos"]:
+                tela["textos"] = ["Clique nos personagens para interagir."]
+            tela["botoes"] = [("Sair da taverna", "sair_taverna")]
 
         elif fase == "candidus_main":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Cardápio", "candidus_shop"),
                 ("Moedas", "candidus_grana"),
                 ("Inventário", "candidus_inv"),
             ]
 
         elif fase == "candidus_shop":
-            view["buttons"] = [
+            tela["botoes"] = [
                 *[(f"{n} — {p} moedas", f"candidus_buy_{i}") for i, (n, p) in enumerate(COISAS_DO_BAR, 1)],
                 ("Cancelar", "shop_cancel"),
             ]
 
         elif fase == "viajante_main":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Mapas", "viajante_shop"),
                 ("Boato grátis", "viajante_boato"),
             ]
 
         elif fase == "viajante_shop":
-            view["buttons"] = [
+            tela["botoes"] = [
                 *[(f"{n} — {p} moedas", f"viajante_buy_{i}") for i, (n, p) in enumerate(MAPINHA_DO_MOLEQUE, 1)],
                 ("Cancelar", "shop_cancel"),
             ]
 
         elif fase == "bardo_main":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Canção alegre (3)", "bardo_alegre"),
                 ("Balada (2)", "bardo_sombria"),
                 ("Ouvir grátis", "bardo_ouvir"),
             ]
 
         elif fase == "bebado_main":
-            view["buttons"] = [('"O quê?"', "bebado_oque"), ("Ignorar", "bebado_ignorar")]
+            tela["botoes"] = [('"O quê?"', "bebado_oque"), ("Ignorar", "bebado_ignorar")]
 
         elif fase == "dados_main":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Apostar", "dados_apostar"),
                 ("Moedas", "dados_grana"),
             ]
 
         elif fase == "dados_bet":
-            view["number_input"] = (1, self.state["grana"])
-            view["number_prompt"] = "Aposta:"
+            tela["pedir_numero"] = (1, self.jogador["grana"])
+            tela["dica_numero"] = "Aposta:"
 
         elif fase == "dados_animacao":
-            view["buttons"] = []
+            tela["botoes"] = []
 
         elif fase == "cacador_main":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Ofertas", "cacador_shop"),
                 ("Duelo", "cacador_combate"),
             ]
 
         elif fase == "cacador_shop":
-            view["buttons"] = [
+            tela["botoes"] = [
                 *[(f"{n} — {p} moedas", f"cacador_buy_{i}") for i, (n, p) in enumerate(TRALHA_DO_BRABO, 1)],
                 ("Cancelar", "shop_cancel"),
             ]
 
         elif fase == "combat_intro":
-            view["buttons"] = []
+            tela["botoes"] = []
 
         elif fase == "combat":
-            view["buttons"] = [
+            tela["botoes"] = [
                 ("Atacar (1–6 dano)", "combat_atacar"),
                 ("Postura defensiva", "combat_defender"),
             ]
 
         elif fase == "combat_animacao":
-            view["buttons"] = []
+            tela["botoes"] = []
 
         elif fase == "ended":
-            view["game_over"] = True
+            tela["acabou"] = True
 
-        return view
+        return tela
 
-    def handle_action(self, action_id):
-        if action_id == "continuar":
-            if self.phase == "intro_arrival":
-                self._set("intro_door", ["Você chega à porta da taverna.", "O que você faz?"])
-            elif self.phase == "intro_bebado":
-                self._set(
+    def executar_escolha(self, escolha):
+        if escolha == "continuar":
+            if self.etapa == "intro_arrival":
+                self.mudar_fase("intro_door", ["Você chega à porta da taverna.", "O que você faz?"])
+            elif self.etapa == "intro_bebado":
+                self.mudar_fase(
                     "intro_name",
                     ['"Qual o seu nome, jovem?"', "Digite e pressione Enter:"],
                 )
             return
 
-        if action_id == "intro_door_enter":
-            self._set("intro_bebado", [])
-        elif action_id == "intro_door_window":
-            self._set("intro_window", [])
-        elif action_id == "intro_window_back":
-            self._set("intro_door", ["Você chega à porta da taverna.", "O que você faz?"])
-        elif action_id == "origin_1":
-            self._origem(1)
-        elif action_id == "origin_2":
-            self._origem(2)
-        elif action_id == "origin_3":
-            self._origem(3)
-        elif action_id == "origin_4":
-            self._origem(4)
-        elif action_id == "origin_5":
-            self._origem(5)
-        elif action_id == "intro_to_lobby":
-            self._set("lobby", [])
-        elif action_id == "sair_taverna":
-            self._set(
+        if escolha == "intro_door_enter":
+            self.mudar_fase("intro_bebado", [])
+        elif escolha == "intro_door_window":
+            self.mudar_fase("intro_window", [])
+        elif escolha == "intro_window_back":
+            self.mudar_fase("intro_door", ["Você chega à porta da taverna.", "O que você faz?"])
+        elif escolha == "origin_1":
+            self.escolher_origem(1)
+        elif escolha == "origin_2":
+            self.escolher_origem(2)
+        elif escolha == "origin_3":
+            self.escolher_origem(3)
+        elif escolha == "origin_4":
+            self.escolher_origem(4)
+        elif escolha == "origin_5":
+            self.escolher_origem(5)
+        elif escolha == "intro_to_lobby":
+            self.mudar_fase("lobby", [])
+        elif escolha == "sair_taverna":
+            self.mudar_fase(
                 "ended",
                 ["Você atravessa a porta e enfrenta o frio da noite.", "Até a próxima!"],
             )
-        elif action_id == "candidus_shop":
-            self._set("candidus_shop", ['"Eis o que temos hoje:"'])
-        elif action_id == "candidus_grana":
-            self.log.append(texto_grana(self.state))
-        elif action_id == "candidus_inv":
-            self.log.append(texto_inventario(self.state))
-        elif action_id.startswith("candidus_buy_"):
-            i = int(action_id.split("_")[-1])
+        elif escolha == "candidus_shop":
+            self.mudar_fase("candidus_shop", ['"Eis o que temos hoje:"'])
+        elif escolha == "candidus_grana":
+            self.mensagens.append(texto_grana(self.jogador))
+        elif escolha == "candidus_inv":
+            self.mensagens.append(texto_inventario(self.jogador))
+        elif escolha.startswith("candidus_buy_"):
+            i = int(escolha.split("_")[-1])
             nome, preco = COISAS_DO_BAR[i - 1]
-            self._comprar(nome, preco, "candidus")
-        elif action_id == "viajante_shop":
-            self._set("viajante_shop", [])
-        elif action_id == "viajante_boato":
-            self.log.append(
+            self.comprar_item(nome, preco, "candidus")
+        elif escolha == "viajante_shop":
+            self.mudar_fase("viajante_shop", [])
+        elif escolha == "viajante_boato":
+            self.mensagens.append(
                 '"Patrulhas reais dobraram na estrada leste. Cuidado ao amanhecer."'
             )
-        elif action_id.startswith("viajante_buy_"):
-            i = int(action_id.split("_")[-1])
+        elif escolha.startswith("viajante_buy_"):
+            i = int(escolha.split("_")[-1])
             nome, preco = MAPINHA_DO_MOLEQUE[i - 1]
-            self._comprar(nome, preco, "viajante")
-        elif action_id == "bardo_alegre":
-            self._bardo_alegre()
-        elif action_id == "bardo_sombria":
-            self._bardo_sombria()
-        elif action_id == "bardo_ouvir":
-            self.log.append("Você escuta um refrão distante.")
-        elif action_id == "bebado_oque":
-            self.log.append('Você murmura: "O quê?"')
-        elif action_id == "bebado_ignorar":
+            self.comprar_item(nome, preco, "viajante")
+        elif escolha == "bardo_alegre":
+            self.pagar_musica_alegre()
+        elif escolha == "bardo_sombria":
+            self.pagar_musica_triste()
+        elif escolha == "bardo_ouvir":
+            self.mensagens.append("Você escuta um refrão distante.")
+        elif escolha == "bebado_oque":
+            self.mensagens.append('Você murmura: "O quê?"')
+        elif escolha == "bebado_ignorar":
             self.enter_npc("lobby")
-        elif action_id == "dados_apostar":
-            self._iniciar_aposta()
-        elif action_id == "dados_grana":
-            self.log.append(texto_grana(self.state))
-        elif action_id == "cacador_shop":
-            self._set("cacador_shop", [])
-        elif action_id == "cacador_combate":
-            self._iniciar_combate()
-        elif action_id.startswith("cacador_buy_"):
-            i = int(action_id.split("_")[-1])
+        elif escolha == "dados_apostar":
+            self.comecar_aposta()
+        elif escolha == "dados_grana":
+            self.mensagens.append(texto_grana(self.jogador))
+        elif escolha == "cacador_shop":
+            self.mudar_fase("cacador_shop", [])
+        elif escolha == "cacador_combate":
+            self.comecar_duelo()
+        elif escolha.startswith("cacador_buy_"):
+            i = int(escolha.split("_")[-1])
             nome, preco = TRALHA_DO_BRABO[i - 1]
-            self._comprar(nome, preco, "cacador")
-        elif action_id == "combat_atacar":
-            self._turno_combate("1")
-        elif action_id == "combat_defender":
-            self._turno_combate("2")
-        elif action_id == "shop_cancel":
-            self._shop_cancel()
+            self.comprar_item(nome, preco, "cacador")
+        elif escolha == "combat_atacar":
+            self.jogar_turno_duelo("1")
+        elif escolha == "combat_defender":
+            self.jogar_turno_duelo("2")
+        elif escolha == "shop_cancel":
+            self.cancelar_loja()
         else:
-            self.log.append("Não entendi essa escolha.")
+            self.mensagens.append("Não entendi essa escolha.")
 
     def submit_text(self, text):
-        if self.phase == "intro_name":
-            self.state["nome_mano"] = text.strip().title() or "Forasteiro"
-            self._set(
+        if self.etapa == "intro_name":
+            self.jogador["nome"] = text.strip().title() or "Forasteiro"
+            self.mudar_fase(
                 "intro_origin",
-                [f'"De que bandas você vem, {self.state["nome_mano"]}?"'],
+                [f'"De que bandas você vem, {self.jogador["nome"]}?"'],
             )
 
     def submit_number(self, value):
-        if self.phase == "dados_bet":
-            g = self.state["grana"]
+        if self.etapa == "dados_bet":
+            g = self.jogador["grana"]
             if not (1 <= value <= g):
                 return f"Aposte entre 1 e {g} moedas."
-            self._resolver_dados(value)
+            self.sortear_dados(value)
             return None
         return None
 
     def enter_npc(self, npc):
-        self.combat = None
+        self.duelo = None
         if npc == "lobby":
-            self.phase = "lobby"
-            self.log = []
+            self.etapa = "lobby"
+            self.mensagens = []
             return
         intros = {
             "candidus": ("candidus_main", ["Candidus limpa um copo.", '"Quer gastar suas moedas?"']),
             "viajante": ("viajante_main", ['"Mapas confiáveis — ou quase."']),
             "bardo": ("bardo_main", ['"Uma canção aquece a alma — ou esvazia a bolsa."']),
-            "bebado": ("bebado_main", self._linhas_bebado()),
+            "bebado": ("bebado_main", self.fala_bebado()),
             "dados": ("dados_main", ['"Quer tentar a sorte nos dados?"']),
             "cacador": (
                 "cacador_main",
                 ['"Posso vender informação... ou te arrumar problema."'],
             ),
         }
-        phase, lines = intros[npc]
-        self._set(phase, lines)
+        etapa, textos = intros[npc]
+        self.mudar_fase(etapa, textos)
 
-    def _set(self, phase, lines):
-        self.phase = phase
-        self.log = list(lines)
+    def mudar_fase(self, etapa, textos):
+        self.etapa = etapa
+        self.mensagens = list(textos)
 
-    def _origem(self, n):
+    def escolher_origem(self, n):
         if n in (1, 3):
             r = '"Ha, já imaginava. Essa cara de bebê não engana ninguém! Haha!"'
         elif n in (2, 4):
             r = '"Hmm, relatos sombrios dessas bandas..."'
         else:
             r = '"Ahh, vai ser assim então. Ok."'
-        nm = self.state["nome_mano"]
-        self._set(
+        nm = self.jogador["nome"]
+        self.mudar_fase(
             "intro_welcome",
             [
                 r,
@@ -418,105 +418,105 @@ class GameController:
             ],
         )
 
-    def _comprar(self, nome, preco, ctx):
-        if self.state["grana"] < preco:
+    def comprar_item(self, nome, preco, ctx):
+        if self.jogador["grana"] < preco:
             msgs = {
                 "candidus": '"Moedas não bastam."',
                 "viajante": '"Sem moedas, sem mapa."',
                 "cacador": '"Moedas curtas."',
             }
-            self.log.append(msgs[ctx])
+            self.mensagens.append(msgs[ctx])
             return
-        self.state["grana"] -= preco
-        self.state["mochila"].append(nome)
-        self.log.append(f"Você guarda: {nome}.")
+        self.jogador["grana"] -= preco
+        self.jogador["mochila"].append(nome)
+        self.mensagens.append(f"Você guarda: {nome}.")
 
-    def _shop_cancel(self):
+    def cancelar_loja(self):
         m = {
             "candidus_shop": "candidus",
             "viajante_shop": "viajante",
             "cacador_shop": "cacador",
         }
-        if self.phase in m:
-            self.enter_npc(m[self.phase])
+        if self.etapa in m:
+            self.enter_npc(m[self.etapa])
 
-    def _bardo_alegre(self):
-        if self.state["grana"] < 3:
-            self.log.append('"Moedas faltando..."')
+    def pagar_musica_alegre(self):
+        if self.jogador["grana"] < 3:
+            self.mensagens.append('"Moedas faltando..."')
         else:
-            self.state["grana"] -= 3
-            self.log.append("Melodia saltitante — o mundo parece mais leve.")
+            self.jogador["grana"] -= 3
+            self.mensagens.append("Melodia saltitante — o mundo parece mais leve.")
 
-    def _bardo_sombria(self):
-        if self.state["grana"] < 2:
-            self.log.append('"Sem gorjeta, sem sombras cantadas."')
+    def pagar_musica_triste(self):
+        if self.jogador["grana"] < 2:
+            self.mensagens.append('"Sem gorjeta, sem sombras cantadas."')
         else:
-            self.state["grana"] -= 2
-            self.log.append("A voz desce como névoa.")
+            self.jogador["grana"] -= 2
+            self.mensagens.append("A voz desce como névoa.")
 
-    def _iniciar_aposta(self):
-        if self.state["grana"] < 1:
-            self.log.append('"Sem dinheiro, zé ruela!"')
+    def comecar_aposta(self):
+        if self.jogador["grana"] < 1:
+            self.mensagens.append('"Sem dinheiro, zé ruela!"')
             return
-        self._set("dados_bet", [f'"Quanto aposta?" (máx. {self.state["grana"]})'])
+        self.mudar_fase("dados_bet", [f'"Quanto aposta?" (máx. {self.jogador["grana"]})'])
 
-    def _resolver_dados(self, aposta):
+    def sortear_dados(self, aposta):
         d1, d2 = random.randint(1, 6), random.randint(1, 6)
         d3, d4 = random.randint(1, 6), random.randint(3, 6)
-        self.dice_result = {
+        self.resultado_dados = {
             "aposta": aposta,
             "player": (d1, d2),
             "npc": (d3, d4),
         }
-        self.phase = "dados_animacao"
-        self.log = []
+        self.etapa = "dados_animacao"
+        self.mensagens = []
 
     def finalizar_animacao_dados(self):
-        if not self.dice_result:
+        if not self.resultado_dados:
             return
-        aposta = self.dice_result["aposta"]
-        d1, d2 = self.dice_result["player"]
-        d3, d4 = self.dice_result["npc"]
+        aposta = self.resultado_dados["aposta"]
+        d1, d2 = self.resultado_dados["player"]
+        d3, d4 = self.resultado_dados["npc"]
         sp, sn = d1 + d2, d3 + d4
         linhas = []
-        if aposta == self.state["grana"]:
+        if aposta == self.jogador["grana"]:
             linhas.append('"Tudo isso?!"')
         linhas.append(f"Você tirou {d1} e {d2}. A soma é {sp}.")
         linhas.append(f"O estranho tirou {d3} e {d4}. A soma é {sn}.")
         if sn > sp:
-            self.state["grana"] -= aposta
+            self.jogador["grana"] -= aposta
             linhas.append('"Hahaha, talvez você tenha mais sorte da próxima vez"')
             linhas.append(f"Você perdeu {aposta} moedas.")
         elif sn < sp:
-            self.state["grana"] += aposta
+            self.jogador["grana"] += aposta
             linhas.append('"Você está com sorte, jovem"')
             linhas.append(f"Você ganhou {aposta} moedas.")
         else:
             linhas.append('"Olha! Parece que empatamos."')
-        self.dice_result = None
-        self._set("dados_main", linhas)
+        self.resultado_dados = None
+        self.mudar_fase("dados_main", linhas)
 
-    def _iniciar_combate(self):
-        self.combat = {"player_hp": 16, "enemy_hp": 12}
-        self.combat_turn_result = None
-        self.phase = "combat_intro"
-        self.log = []
+    def comecar_duelo(self):
+        self.duelo = {"player_hp": 16, "enemy_hp": 12}
+        self.resultado_turno = None
+        self.etapa = "combat_intro"
+        self.mensagens = []
 
     def finalizar_intro_combate(self):
-        if not self.combat:
+        if not self.duelo:
             return
-        ph, eh = self.combat["player_hp"], self.combat["enemy_hp"]
-        self.phase = "combat"
-        self.log = [
+        ph, eh = self.duelo["player_hp"], self.duelo["enemy_hp"]
+        self.etapa = "combat"
+        self.mensagens = [
             "Um sujeito largo cutuca sua cadeira.",
             '"Esse lugar é apertado demais pra dois heróis", rosna ele.',
             f"Seu vigor: {ph} | Bandido: {eh}",
         ]
 
-    def _turno_combate(self, acao):
-        if not self.combat:
+    def jogar_turno_duelo(self, acao):
+        if not self.duelo:
             return
-        ph, eh = self.combat["player_hp"], self.combat["enemy_hp"]
+        ph, eh = self.duelo["player_hp"], self.duelo["enemy_hp"]
         linhas = []
         if acao == "1":
             d = random.randint(1, 6)
@@ -529,7 +529,7 @@ class GameController:
         else:
             linhas.append("Hesitação custa cara: você tropeça e erra o timing.")
 
-        self.combat["enemy_hp"] = max(eh, 0)
+        self.duelo["enemy_hp"] = max(eh, 0)
         ended = eh <= 0
         victory = False
         multa = 0
@@ -542,14 +542,14 @@ class GameController:
             else:
                 di = random.randint(2, 5)
             ph -= di
-            self.combat["player_hp"] = max(ph, 0)
+            self.duelo["player_hp"] = max(ph, 0)
             linhas.append(
                 f"O bandido revida com {di} de dano. "
                 f"Seu vigor: {max(ph, 0)} | Bandido: {max(eh, 0)}"
             )
             if ph <= 0:
                 ended = True
-                multa = min(8, self.state["grana"])
+                multa = min(8, self.jogador["grana"])
                 linhas.append(
                     "Você apaga no chão da taverna. O caçador puxa você pelo colarinho a tempo."
                 )
@@ -560,34 +560,34 @@ class GameController:
             )
             victory = True
 
-        self.combat_turn_result = {
+        self.resultado_turno = {
             "linhas": linhas,
             "ended": ended,
             "victory": victory,
             "multa": multa,
         }
-        self.phase = "combat_animacao"
+        self.etapa = "combat_animacao"
 
     def finalizar_animacao_combate(self):
-        r = self.combat_turn_result
+        r = self.resultado_turno
         if not r:
             return
         if r["ended"]:
             if r["victory"]:
-                self.state["grana"] += 15
+                self.jogador["grana"] += 15
             else:
-                self.state["grana"] -= r["multa"]
-            self.combat = None
-            self.combat_turn_result = None
+                self.jogador["grana"] -= r["multa"]
+            self.duelo = None
+            self.resultado_turno = None
             self.enter_npc("cacador")
-            self.log = r["linhas"]
+            self.mensagens = r["linhas"]
         else:
-            self.combat_turn_result = None
-            self.phase = "combat"
-            self.log = r["linhas"]
+            self.resultado_turno = None
+            self.etapa = "combat"
+            self.mensagens = r["linhas"]
 
-    def _linhas_bebado(self):
-        nome = self.state["nome_mano"]
+    def fala_bebado(self):
+        nome = self.jogador["nome"]
         todas = FRASES_BEBADO + [
             f'"Ouça {nome}, quem tem um porquê suporta quase qualquer como."',
             f'"Ouça {nome}, importa como você reage."',
@@ -597,59 +597,59 @@ class GameController:
 
 
 def rodar_modo_console():
-    ctrl = GameController()
-    while not ctrl.get_view()["game_over"]:
-        view = ctrl.get_view()
-        for ln in view["lines"]:
+    controle = ControleJogo()
+    while not controle.montar_interface()["acabou"]:
+        tela = controle.montar_interface()
+        for ln in tela["textos"]:
             print(ln)
-        if view["lines"]:
+        if tela["textos"]:
             print()
-        if view["text_input"]:
-            ctrl.submit_text(input(f'{view["text_prompt"]} '))
+        if tela["pedir_texto"]:
+            controle.submit_text(input(f'{tela["dica_texto"]} '))
             continue
-        if view["number_input"]:
-            mn, mx = view["number_input"]
+        if tela["pedir_numero"]:
+            mn, mx = tela["pedir_numero"]
             while True:
                 try:
-                    n = int(input(f'{view["number_prompt"]} ({mn}-{mx}): '))
+                    n = int(input(f'{tela["dica_numero"]} ({mn}-{mx}): '))
                 except ValueError:
                     print("Número inválido.")
                     continue
-                err = ctrl.submit_number(n)
+                err = controle.submit_number(n)
                 if err:
                     print(err)
                 else:
                     break
             continue
-        if view["in_lobby"]:
+        if tela["no_salao"]:
             print("1=Candidus 2=Viajante 3=Bêbado 4=Bardo 5=Dados 6=Caçador 7=Sair")
             m = {"1": "candidus", "2": "viajante", "3": "bebado", "4": "bardo", "5": "dados", "6": "cacador"}
             e = input("> ").strip()
             if e == "7":
-                ctrl.handle_action("sair_taverna")
+                controle.executar_escolha("sair_taverna")
             elif e in m:
-                ctrl.enter_npc(m[e])
+                controle.enter_npc(m[e])
             continue
-        if ctrl.phase == "intro_origin":
+        if controle.etapa == "intro_origin":
             for i, o in enumerate(ORIGENS, 1):
                 print(f"{i} = {o}")
             try:
                 idx = int(input("> ").strip())
                 if 1 <= idx <= 5:
-                    ctrl.handle_action(f"origin_{idx}")
+                    controle.executar_escolha(f"origin_{idx}")
             except ValueError:
                 print("Opção inválida.")
             continue
-        if not view["buttons"]:
-            if ctrl.phase.startswith("intro"):
-                ctrl.handle_action("continuar")
+        if not tela["botoes"]:
+            if controle.etapa.startswith("intro"):
+                controle.executar_escolha("continuar")
             continue
-        for i, (lb, _) in enumerate(view["buttons"], 1):
+        for i, (lb, _) in enumerate(tela["botoes"], 1):
             print(f"{i} = {lb}")
         try:
             idx = int(input("> ")) - 1
-            if 0 <= idx < len(view["buttons"]):
-                ctrl.handle_action(view["buttons"][idx][1])
+            if 0 <= idx < len(tela["botoes"]):
+                controle.executar_escolha(tela["botoes"][idx][1])
         except ValueError:
             print("Opção inválida.")
 
@@ -668,12 +668,45 @@ def carregar_asset_opcional(nomes):
 
 
 EXTENSOES_AUDIO = (".mp3", ".ogg", ".wav", ".mpeg", ".mpga", ".flac")
+VOLUME_MUSICA = 0.9
+VOLUME_SFX = min(1.0, 1.23)
+
+SONS_DIR = os.path.join(ASSETS, "sons")
+
+ARQUIVOS_SOM = {
+    "porta": "PORTA ABRINDO.wav",
+    "candidus": "FALA CANDIDUS.wav",
+    "viajante": "FALA VIAJANTE.wav",
+    "bardo": "FALA BARDO.wav",
+    "bebado": "FALA BEBADO.wav",
+    "dados": "FALA MESA DE JOGOS.wav",
+    "bandido": "FALA BANDIDO.wav",
+    "moeda": "MOEDA.wav",
+    "interacao": "INTERAÇÃO.wav",
+    "espada": "BARULHO ESPADA BATENDO.wav",
+    "vitoria": "BANDIDO DERROTADO.wav",
+}
+
+SOM_NPC = {
+    "candidus": "candidus",
+    "viajante": "viajante",
+    "bardo": "bardo",
+    "bebado": "bebado",
+    "dados": "dados",
+    "cacador": "bandido",
+}
+
+
+def preparar_audio():
+    if not pygame.mixer.get_init():
+        pygame.mixer.init()
 
 
 def caminho_musica_fundo():
     for nome in sorted(os.listdir(ASSETS)):
-        if nome.lower().endswith(EXTENSOES_AUDIO):
-            return os.path.join(ASSETS, nome)
+        caminho = os.path.join(ASSETS, nome)
+        if os.path.isfile(caminho) and nome.lower().endswith(EXTENSOES_AUDIO):
+            return caminho
     return None
 
 
@@ -682,9 +715,9 @@ def iniciar_musica_fundo():
     if not caminho:
         return
     try:
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
+        preparar_audio()
         pygame.mixer.music.load(caminho)
+        pygame.mixer.music.set_volume(VOLUME_MUSICA)
         pygame.mixer.music.play(-1)
     except pygame.error:
         pass
@@ -693,6 +726,28 @@ def iniciar_musica_fundo():
 def parar_musica_fundo():
     if pygame.mixer.get_init():
         pygame.mixer.music.stop()
+
+
+def carregar_efeitos():
+    preparar_audio()
+    cache = {}
+    for chave, arquivo in ARQUIVOS_SOM.items():
+        caminho = os.path.join(SONS_DIR, arquivo)
+        if not os.path.isfile(caminho):
+            continue
+        try:
+            som = pygame.mixer.Sound(caminho)
+            som.set_volume(VOLUME_SFX)
+            cache[chave] = som
+        except pygame.error:
+            pass
+    return cache
+
+
+def tocar_efeito(efeitos, chave):
+    som = efeitos.get(chave)
+    if som:
+        som.play()
 
 
 def escalar_tela_cheia(imagem):
@@ -768,7 +823,7 @@ def executar_fade_in(tela, relogio, desenhar, fps=FPS):
     return True
 
 
-class TavernTalkGUI:
+class JanelaJogo:
     def __init__(self):
         pygame.init()
         self.tela = pygame.display.set_mode((LARGURA, ALTURA))
@@ -801,9 +856,9 @@ class TavernTalkGUI:
 
         self.sprites_origem = {}
         self.rects_origem = {}
-        self._montar_layout_origens()
+        self.montar_cartoes_origem()
 
-        self.ctrl = GameController()
+        self.controle = ControleJogo()
         self.cena_atual = "intro"
         self.botoes_ui = []
         self.input_buffer = ""
@@ -820,6 +875,10 @@ class TavernTalkGUI:
         }
         self.botao_voltar = pygame.Rect(0, 0, BOTAO_VOLTAR_TAM, BOTAO_VOLTAR_TAM)
         iniciar_musica_fundo()
+        self.sons = carregar_efeitos()
+
+    def tocar(self, chave):
+        tocar_efeito(self.sons, chave)
 
     def em_animacao(self):
         return self.animacao is not None
@@ -831,20 +890,20 @@ class TavernTalkGUI:
             return False
         if self.cena_atual in ("intro", "bebado_esbarra", "janela", "origem_select", "combate_inicio"):
             return False
-        if self.ctrl.phase.startswith("intro"):
+        if self.controle.etapa.startswith("intro"):
             return False
         return self.cena_atual in CENAS_DIALOGUE_NPC
 
-    def calcular_metricas_painel(self, view):
-        if not (view["lines"] or view["buttons"] or view["text_input"] or view["number_input"]):
+    def calcular_metricas_painel(self, tela):
+        if not (tela["textos"] or tela["botoes"] or tela["pedir_texto"] or tela["pedir_numero"]):
             return None
-        linhas_txt = self.coletar_linhas_texto(view)
-        n_btn = len(view["buttons"])
+        linhas_txt = self.coletar_linhas_texto(tela)
+        n_btn = len(tela["botoes"])
         colunas = 2 if n_btn > 3 else 1
         linhas_btn = (n_btn + colunas - 1) // colunas if n_btn else 0
         altura_texto = len(linhas_txt) * 28 + (16 if linhas_txt else 0)
         altura_botoes = linhas_btn * 52 + (12 if linhas_btn else 0)
-        altura_input = 44 if (view["text_input"] or view["number_input"] or self.erro_input) else 0
+        altura_input = 44 if (tela["pedir_texto"] or tela["pedir_numero"] or self.erro_input) else 0
         altura_painel = min(400, 28 + altura_texto + altura_botoes + altura_input)
         painel_y = ALTURA - altura_painel
         return painel_y, altura_painel
@@ -857,7 +916,7 @@ class TavernTalkGUI:
         self.botao_voltar = pygame.Rect(x, y, BOTAO_VOLTAR_TAM, BOTAO_VOLTAR_TAM)
         self.tela.blit(self.sprite_voltar, self.botao_voltar.topleft)
 
-    def _montar_layout_origens(self):
+    def montar_cartoes_origem(self):
         slot_larg, slot_alt = 340, 520
         espaco = 24
         total_larg = 5 * slot_larg + 4 * espaco
@@ -879,7 +938,7 @@ class TavernTalkGUI:
             self.rects_origem[i] = pygame.Rect(x, y, sw, sh)
 
     def fase_para_cena(self):
-        fase = self.ctrl.phase
+        fase = self.controle.etapa
         if fase == "intro_window":
             return "janela"
         if fase == "intro_origin":
@@ -897,7 +956,7 @@ class TavernTalkGUI:
         return FASE_PARA_CENA.get(fase, "lobby")
 
     def em_combate(self):
-        return self.ctrl.phase in ("combat_intro", "combat", "combat_animacao")
+        return self.controle.etapa in ("combat_intro", "combat", "combat_animacao")
 
     def blit_tela_cheia(self, chave_sprite):
         self.tela.blit(self.sprites[chave_sprite], (0, 0))
@@ -937,7 +996,7 @@ class TavernTalkGUI:
         pygame.draw.rect(self.tela, DOURADO, rect, 4, border_radius=6)
 
     def desenhar_hover_lobby(self):
-        if self.ctrl.phase != "lobby":
+        if self.controle.etapa != "lobby":
             return
         mouse = pygame.mouse.get_pos()
         for rect in self.hotspots.values():
@@ -994,10 +1053,10 @@ class TavernTalkGUI:
             y += 34
 
     def desenhar_hud(self):
-        if self.ctrl.phase.startswith("intro") and not self.ctrl.state["nome_mano"]:
+        if self.controle.etapa.startswith("intro") and not self.controle.jogador["nome"]:
             return
-        st = self.ctrl.state
-        nome = st["nome_mano"] or "Forasteiro"
+        st = self.controle.jogador
+        nome = st["nome"] or "Forasteiro"
         txt = self.fonte_hud.render(f"{nome}  |  {st['grana']} moedas", True, DOURADO)
         self.tela.blit(txt, (20, 120 if self.cena_atual == "origem_select" else 16))
 
@@ -1015,20 +1074,20 @@ class TavernTalkGUI:
             linhas.append(atual)
         return linhas or [""]
 
-    def coletar_linhas_texto(self, view, max_linhas=5):
+    def coletar_linhas_texto(self, tela, max_linhas=5):
         linhas = []
-        for linha in view["lines"][-max_linhas:]:
+        for linha in tela["textos"][-max_linhas:]:
             linhas.extend(self.quebrar_texto(linha, LARGURA - 100))
         return linhas[:max_linhas]
 
-    def montar_botoes(self, view, y_inicio):
+    def montar_botoes(self, tela, y_inicio):
         self.botoes_ui.clear()
-        if not view["buttons"]:
+        if not tela["botoes"]:
             return
         largura_btn = 340
         altura_btn = 42
-        colunas = 2 if len(view["buttons"]) > 3 else 1
-        for i, (rotulo, aid) in enumerate(view["buttons"]):
+        colunas = 2 if len(tela["botoes"]) > 3 else 1
+        for i, (rotulo, aid) in enumerate(tela["botoes"]):
             col = i % colunas
             linha = i // colunas
             x = 50 + col * (largura_btn + 20)
@@ -1050,39 +1109,39 @@ class TavernTalkGUI:
             )
 
     def desenhar_painel(self):
-        view = self.ctrl.get_view()
+        tela = self.controle.montar_interface()
 
         if self.em_animacao():
             return
 
         if self.em_combate():
-            self.montar_botoes(view, COMBATE_BOTOES_Y)
+            self.montar_botoes(tela, COMBATE_BOTOES_Y)
             self.desenhar_botoes_na_tela()
-            if view["lines"]:
-                self.desenhar_banner_superior(view["lines"][-4:])
+            if tela["textos"]:
+                self.desenhar_banner_superior(tela["textos"][-4:])
             return
 
         if self.cena_atual in ("bebado_esbarra", "combate_inicio"):
-            self.montar_botoes(view, ALTURA - 70)
+            self.montar_botoes(tela, ALTURA - 70)
             self.desenhar_botoes_na_tela()
-            if view["lines"]:
-                self.desenhar_banner_superior(view["lines"][-4:])
+            if tela["textos"]:
+                self.desenhar_banner_superior(tela["textos"][-4:])
             return
 
         if self.cena_atual == "origem_select":
-            self.desenhar_banner_superior(view["lines"])
+            self.desenhar_banner_superior(tela["textos"])
             return
 
         if self.cena_atual == "janela":
-            self.montar_botoes(view, ALTURA - 70)
+            self.montar_botoes(tela, ALTURA - 70)
             self.desenhar_botoes_na_tela()
             return
 
-        metricas = self.calcular_metricas_painel(view)
+        metricas = self.calcular_metricas_painel(tela)
         if metricas is None:
             return
         painel_y, altura_painel = metricas
-        linhas_txt = self.coletar_linhas_texto(view)
+        linhas_txt = self.coletar_linhas_texto(tela)
 
         painel = pygame.Surface((LARGURA, altura_painel), pygame.SRCALPHA)
         painel.fill(PAINEL_COR)
@@ -1094,14 +1153,14 @@ class TavernTalkGUI:
             y += 28
 
         y_botoes = y + 8 if linhas_txt else painel_y + 16
-        self.montar_botoes(view, y_botoes)
+        self.montar_botoes(tela, y_botoes)
 
-        if view["text_input"]:
-            p = f'{view["text_prompt"]} {self.input_buffer}_'
+        if tela["pedir_texto"]:
+            p = f'{tela["dica_texto"]} {self.input_buffer}_'
             self.tela.blit(self.fonte.render(p, True, DOURADO), (50, painel_y + altura_painel - 50))
-        elif view["number_input"]:
-            mn, mx = view["number_input"]
-            p = f'{view["number_prompt"]} ({mn}-{mx}): {self.input_buffer}_'
+        elif tela["pedir_numero"]:
+            mn, mx = tela["pedir_numero"]
+            p = f'{tela["dica_numero"]} ({mn}-{mx}): {self.input_buffer}_'
             self.tela.blit(self.fonte.render(p, True, DOURADO), (50, painel_y + altura_painel - 50))
 
         if self.erro_input:
@@ -1124,6 +1183,12 @@ class TavernTalkGUI:
         if not executar_fade_out(self.tela, self.relogio, self.desenhar_tudo):
             return False
         self.cena_atual = nova
+        if nova == "dialogo_candidus" and self.controle.etapa in (
+            "intro_name",
+            "intro_origin",
+            "intro_welcome",
+        ):
+            self.tocar("candidus")
         return executar_fade_in(self.tela, self.relogio, self.desenhar_tudo)
 
     def sincronizar_cena(self):
@@ -1150,7 +1215,7 @@ class TavernTalkGUI:
         )
 
     def iniciar_animacao_turno_combate(self):
-        r = self.ctrl.combat_turn_result
+        r = self.controle.resultado_turno
         if not r:
             return
         etapas = [
@@ -1167,10 +1232,13 @@ class TavernTalkGUI:
                     {"sprite_key": "combate_derrota", "duracao": MS_CENA_RESULTADO_COMBATE}
                 )
         self.cena_atual = "combate_inicio"
+        self.tocar("espada")
+        if r["ended"] and r["victory"]:
+            self.tocar("vitoria")
         self.iniciar_animacao("sprites", etapas, "turno_combate")
 
     def iniciar_animacao_dados(self):
-        dr = self.ctrl.dice_result
+        dr = self.controle.resultado_dados
         if not dr:
             return
         d1, d2 = dr["player"]
@@ -1203,60 +1271,90 @@ class TavernTalkGUI:
             ao_fim = self.animacao.get("ao_fim")
             self.animacao = None
             if modo == "dados":
-                self.ctrl.finalizar_animacao_dados()
+                grana_antes = self.controle.jogador["grana"]
+                self.controle.finalizar_animacao_dados()
+                if self.controle.jogador["grana"] != grana_antes:
+                    self.tocar("moeda")
             elif ao_fim == "intro_combate":
-                self.ctrl.finalizar_intro_combate()
+                self.controle.finalizar_intro_combate()
             elif ao_fim == "turno_combate":
-                self.ctrl.finalizar_animacao_combate()
+                grana_antes = self.controle.jogador["grana"]
+                self.controle.finalizar_animacao_combate()
+                if self.controle.jogador["grana"] > grana_antes:
+                    self.tocar("moeda")
                 self.sincronizar_cena()
             return False
         return True
 
-    def acao(self, action_id):
+    def acao(self, escolha):
         self.erro_input = ""
-        self.ctrl.handle_action(action_id)
+        grana_antes = self.controle.jogador["grana"]
+        self.controle.executar_escolha(escolha)
         self.input_buffer = ""
-        if self.ctrl.phase == "combat_intro":
+        tocou = False
+        if escolha == "intro_door_enter":
+            self.tocar("porta")
+            tocou = True
+        elif escolha == "cacador_combate":
+            self.tocar("bandido")
+            tocou = True
+        elif escolha in ("bardo_alegre", "bardo_sombria"):
+            if self.controle.jogador["grana"] < grana_antes:
+                self.tocar("moeda")
+            tocou = True
+        elif "_buy_" in escolha:
+            if self.controle.mensagens and "Você guarda" in self.controle.mensagens[-1]:
+                self.tocar("moeda")
+            tocou = True
+        if self.controle.etapa == "combat_intro":
             self.iniciar_intro_combate()
-        elif self.ctrl.phase == "combat_animacao":
+            tocou = True
+        elif self.controle.etapa == "combat_animacao":
             self.iniciar_animacao_turno_combate()
+            tocou = True
         else:
             self.sincronizar_cena()
+        if not tocou:
+            self.tocar("interacao")
 
     def enter_texto(self):
-        view = self.ctrl.get_view()
-        if view["text_input"]:
-            self.ctrl.submit_text(self.input_buffer)
+        tela = self.controle.montar_interface()
+        if tela["pedir_texto"]:
+            self.controle.submit_text(self.input_buffer)
             self.input_buffer = ""
             self.sincronizar_cena()
-        elif view["number_input"]:
+        elif tela["pedir_numero"]:
             try:
                 v = int(self.input_buffer)
             except ValueError:
                 self.erro_input = "Digite um número inteiro."
                 return
-            err = self.ctrl.submit_number(v)
+            err = self.controle.submit_number(v)
             if err:
                 self.erro_input = err
             else:
                 self.input_buffer = ""
                 self.erro_input = ""
-                if self.ctrl.phase == "dados_animacao":
+                if self.controle.etapa == "dados_animacao":
                     self.iniciar_animacao_dados()
                 else:
                     self.sincronizar_cena()
 
     def ir_npc(self, npc):
-        self.ctrl.enter_npc(npc)
+        self.controle.enter_npc(npc)
         self.input_buffer = ""
         self.erro_input = ""
+        if npc != "lobby" and npc in SOM_NPC:
+            self.tocar(SOM_NPC[npc])
         self.sincronizar_cena()
 
     def voltar_lobby(self):
         if self.em_combate() or self.em_animacao():
             return
-        self.ctrl.enter_npc("lobby")
+        self.controle.enter_npc("lobby")
         self.input_buffer = ""
+        self.erro_input = ""
+        self.tocar("interacao")
         self.sincronizar_cena()
 
     def clique_origem(self, pos):
@@ -1273,7 +1371,7 @@ class TavernTalkGUI:
         if self.cena_atual == "origem_select":
             return self.clique_origem(pos)
 
-        if self.cena_atual == "lobby" and self.ctrl.phase == "lobby":
+        if self.cena_atual == "lobby" and self.controle.etapa == "lobby":
             for npc, rect in self.hotspots.items():
                 if rect.collidepoint(pos):
                     self.ir_npc(npc)
@@ -1306,7 +1404,7 @@ class TavernTalkGUI:
                 self.relogio.tick(FPS)
                 continue
 
-            view = self.ctrl.get_view()
+            tela = self.controle.montar_interface()
 
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
@@ -1315,14 +1413,14 @@ class TavernTalkGUI:
 
                 if evento.type == pygame.KEYDOWN:
                     if evento.key == pygame.K_RETURN:
-                        if view["text_input"] or view["number_input"]:
+                        if tela["pedir_texto"] or tela["pedir_numero"]:
                             self.enter_texto()
-                        elif len(view["buttons"]) == 1:
-                            self.acao(view["buttons"][0][1])
+                        elif len(tela["botoes"]) == 1:
+                            self.acao(tela["botoes"][0][1])
                     elif evento.key == pygame.K_BACKSPACE:
                         self.input_buffer = self.input_buffer[:-1]
-                    elif evento.unicode and (view["text_input"] or view["number_input"]):
-                        if view["number_input"] and not evento.unicode.isdigit():
+                    elif evento.unicode and (tela["pedir_texto"] or tela["pedir_numero"]):
+                        if tela["pedir_numero"] and not evento.unicode.isdigit():
                             continue
                         self.input_buffer += evento.unicode
 
@@ -1349,4 +1447,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--console":
         rodar_modo_console()
     else:
-        TavernTalkGUI().loop()
+        JanelaJogo().loop()

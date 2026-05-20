@@ -29,7 +29,26 @@ Requisito: Python 3 com [Pygame](https://www.pygame.org/) (versão em `requireme
 4. Use o **botão Voltar** (canto superior direito) para retornar ao salão nos diálogos.
 5. Você começa com **77 moedas**. Para encerrar: **Sair da taverna** no salão.
 
-Imagens estão em [`assets/`](assets/). No modo gráfico, o primeiro arquivo de áudio encontrado nessa pasta (`.mp3`, `.ogg`, `.wav`, `.mpeg`, etc.) toca em loop como trilha de fundo.
+Imagens em [`assets/`](assets/). Áudio no modo gráfico:
+
+- **Trilha:** primeiro arquivo de áudio na raiz de `assets/` (ex.: `.mpeg`, `.mp3`) em loop.
+- **Efeitos:** arquivos `.wav` em [`assets/sons/`](assets/sons/) (ver tabela abaixo).
+
+### Efeitos sonoros (`assets/sons/`)
+
+| Arquivo | Quando toca |
+|---------|-------------|
+| `PORTA ABRINDO.wav` | Entrar na taverna |
+| `FALA CANDIDUS.wav` | Intro com Candidus / clicar no dono |
+| `FALA VIAJANTE.wav` | Clicar no viajante |
+| `FALA BARDO.wav` | Clicar no bardo |
+| `FALA BEBADO.wav` | Clicar no bêbado |
+| `FALA MESA DE JOGOS.wav` | Clicar na mesa de dados |
+| `FALA BANDIDO.wav` | Caçador / iniciar duelo |
+| `MOEDA.wav` | Compra, gorjeta, aposta (ganho/perda), recompensa do combate |
+| `INTERAÇÃO.wav` | Botões gerais e voltar ao salão |
+| `BARULHO ESPADA BATENDO.wav` | Turno de combate |
+| `BANDIDO DERROTADO.wav` | Vitória no duelo |
 
 ---
 
@@ -37,12 +56,13 @@ Imagens estão em [`assets/`](assets/). No modo gráfico, o primeiro arquivo de 
 
 | Arquivo / pasta | Função |
 |-----------------|--------|
-| [`teste.py`](teste.py) | Jogo completo (~1.340 linhas): lógica + interface gráfica + modo console |
-| [`assets/`](assets/) | Sprites (salão, NPCs, combate, janela, origens, dados em `DICES/`) |
+| [`teste.py`](teste.py) | Jogo completo: lógica + interface gráfica + modo console |
+| [`assets/`](assets/) | Sprites, trilha de fundo e pasta `sons/` |
+| [`assets/sons/`](assets/sons/) | Efeitos sonoros (`.wav`) |
 | [`requirements.txt`](requirements.txt) | Dependência: `pygame` |
 | [`EXPLICACAO_DO_CODIGO.md`](EXPLICACAO_DO_CODIGO.md) | Documentação: resumo do jogo + explicação técnica do código |
 
-O código foi organizado em **um arquivo** de propósito: facilita entrega e leitura em disciplina introdutória, com `GameController` (regras) e `TavernTalkGUI` (tela) bem separados por classe.
+O código foi organizado em **um arquivo** de propósito: facilita entrega e leitura em disciplina introdutória, com `ControleJogo` (regras) e `JanelaJogo` (tela) bem separados por classe.
 
 ---
 
