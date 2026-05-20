@@ -668,8 +668,8 @@ def carregar_asset_opcional(nomes):
 
 
 EXTENSOES_AUDIO = (".mp3", ".ogg", ".wav", ".mpeg", ".mpga", ".flac")
-VOLUME_MUSICA = 0.9
-VOLUME_SFX = min(1.0, 1.23)
+VOLUME_MUSICA = 0.4
+VOLUME_SFX = min(1.1, 1.33)
 
 SONS_DIR = os.path.join(ASSETS, "sons")
 
